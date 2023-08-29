@@ -1,5 +1,5 @@
 from random import choice, random, uniform
-import funciones
+import funciones 
 import sys
 
 

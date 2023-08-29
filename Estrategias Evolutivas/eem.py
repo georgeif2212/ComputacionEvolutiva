@@ -1,4 +1,4 @@
-from random import choice, random, uniform, randint
+from random import choice, random, uniform, randint, randrange
 import sys
 
 
@@ -13,28 +13,39 @@ def ee (n, w_max, v, w, num_iter):
     w - vector de los pesos de cada articulo
     num_iter - numero de iteraciones
     """
-
     # Se crea una solución inicial factible, eligiendio un articulo
     # de forma aleatoria y se evalua la funcion objetivo (valor y peso)
     # TODO
-  
+    x = [0] * n
+    aux = randint(0, n)
+    x[aux]=1
+    valor, peso = valor_peso(x,v,w)
+
     generacion = 0
     while (generacion < num_iter):
         # Se incrementa la generacion
         # TODO
-    
+        generacion= generacion+1
+        
         # Se muta el vector actual x para obtener x_prima
         # TODO
+        x_prima = bitflip(x)
         
         # Se evalua x_prima en la funcion objetivo
         # TODO
-    
+        valor_primo, peso_primo = valor_peso(x_prima,v,w)
         # Si la mutación x_prima es factible y es mejor que x,
         # se reemplazan x, el valor y el peso
         # TODO
+        if(valor_primo>valor and peso_primo<=w_max):
+            x = x_prima.copy()
+            valor = valor_primo
+            peso=peso_primo
+            
     
     # Al finalizar el ciclo, se regresan x, el valor y el peso
     # TODO
+    return x,valor, peso
 
 
 
@@ -45,6 +56,17 @@ def bitflip (x):
     # TODO:
     # Completar operador de mutación
     # Debe devolver x_prima
+    x_prima = x.copy()
+    L= len(x)
+    pm = 1 / L
+    
+    if (pm > uniform(0,1)):
+      aux = randint(0, L-1)
+      if(x[aux]==1):
+        x_prima[aux]=0
+      else:
+        x_prima[aux]=1
+    return x_prima
 
 
 
@@ -55,9 +77,9 @@ def valor_peso (x, v, w):
     valor = 0
     peso = 0
     for i in range(n):
-        if x[i] == 1:
-            valor = valor + v[i]
-            peso = peso + w[i]
+      if x[i] == 1:
+        valor = valor + v[i]
+        peso = peso + w[i]
     return valor, peso
 
 
@@ -74,10 +96,10 @@ def preproceso (problema):
     w = []
     i = 0
     while i < n:
-        info = list(map(int, arch.readline().split()))
-        v.append(info[0])
-        w.append(info[1])
-        i = i+1
+      info = list(map(int, arch.readline().split()))
+      v.append(info[0])
+      w.append(info[1])
+      i = i+1
     arch.close()
     
     # Se lee el valor de la mochila de la solucion optima
@@ -96,13 +118,13 @@ def preproceso (problema):
 
 
 def articulos (x):
-   """Devuelve los articulos seleccionados en x."""
+  """Devuelve los articulos seleccionados en x."""
   
-   arts = []
-   for i in range(len(x)):
-      if x[i] == 1:
-         arts.append(i+1)
-   return arts
+  arts = []
+  for i in range(len(x)):
+    if x[i] == 1:
+      arts.append(i+1)
+  return arts
 
 
 
@@ -118,8 +140,8 @@ def resultado(x, valor, peso):
 
 if __name__ == "__main__":
     if(len(sys.argv) < 3):
-        print("Sintaxis: eem.py <problema> <número_iteraciones>")
+      print("Sintaxis: eem.py <problema> <número_iteraciones>")
     else:
-        n, w_max, v, w = preproceso(sys.argv[1])
-        x, valor, peso = ee(n, w_max, v, w, int(sys.argv[2]))
-        resultado(x, valor, peso)
+      n, w_max, v, w = preproceso(sys.argv[1])
+      x, valor, peso = ee(n, w_max, v, w, int(sys.argv[2]))
+      resultado(x, valor, peso)
