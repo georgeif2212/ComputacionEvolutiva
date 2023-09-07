@@ -3,8 +3,9 @@ import csv
 import sys
 
 
-
-def ee (n, d, num_generaciones, mutacion):
+# * P, Q conjuntos de elementos // mu = número de soluciones iniciales
+# * lambda = numero de elementos a mutar
+def ee (n, d, num_generaciones, mutacion,mu,lamb):
     """
     Algoritmo basico EE para resolver el problema del viajante
     Parametros:
@@ -15,33 +16,54 @@ def ee (n, d, num_generaciones, mutacion):
     """
 
     # Se crea un individuo (permutacion) aleatorio
-    x = permutacion_aleatoria(n)
-    aptitud = calcular_aptitud(x, d)
-  
+    P=list()
+    aptitudes=list()
+    aptitudesPrima=list()
+    # * Generar mu soluciones aleatorias dentro de P
+    for _ in range(mu):
+        x = permutacion_aleatoria(n)
+        P.append(x)
+    # * Calcular aptitudes de P
+    for i in range(len(P)):
+        aptitudes.append(calcular_aptitud(P[i], d)) 
+
+    # * Seleccionar las mejores mu aptitudes de P
+    aptitudes.sort(reverse=True)
+    aptitudes = aptitudes[:mu]
+
     generacion = 0
     generaciones_sin_mejora = 0
     while (generaciones_sin_mejora < num_generaciones):
         generacion = generacion + 1
     
-        # Se muta el vector actual x para obtener x_prima
-        # y se evalua x_prima en la función de aptitud
-        x_prima = mutar (x, mutacion)
-        aptitud_prima = calcular_aptitud(x_prima, d)
-    
-        # Si la mutación x_prima es mejor que x,
-        # se actualiza x
-        if aptitud_prima > aptitud:
-            x = x_prima
-            aptitud = aptitud_prima
+        # * Q es igual a Q + P con mutación
+        Q = mutar(x,mutacion,P,lamb)
+        # * Se evaluan las aptitudes de Q
+        for i in range(len(Q)):
+            aptitudesPrima.append(calcular_aptitud(Q[i], d)) 
+        # * Seleccionar las mejores mu aptitudes de Q
+        aptitudesPrima.sort(reverse=True)
+        aptitudesPrima = aptitudesPrima[:mu]
+
+        # * Identificar las mejores aptitudes de cada lista
+        mejorAptitud = max(aptitudes)
+        mejorAptitudPrima = max(aptitudesPrima)
+        
+        # * Si la aptitud mutada es mejor que la original se cambia
+        if mejorAptitudPrima > mejorAptitud:
+            P=Q[:mu]
+            aptitudes = aptitudesPrima[:]
             generacion_mejor = generacion
             generaciones_sin_mejora = 0
         else:
             generaciones_sin_mejora = generaciones_sin_mejora + 1
     
+    aptitud = max(aptitudes)
+    
     return x, (-1 * aptitud), generacion_mejor
 
 
-def mutar (x, mutacion):
+def mutar (x, mutacion,P,lamb):
     """Aplica el operador de mutación especificado a x."""
     if mutacion == 'intercambio':
         x_prima = intercambio(x)
@@ -49,12 +71,8 @@ def mutar (x, mutacion):
         x_prima = insercion(x)
     elif mutacion == 'inversion':
         x_prima = inversion(x)
-    elif mutacion == 'opt3':
-        x_prima = opt3(x)
-    elif mutacion == 'opt3_2':
-        x_prima = opt3_2(x)
-    elif mutacion == 'opt3_3':
-        x_prima = opt3_3(x)
+    elif mutacion == 'inversionConjunto':
+        x_prima = inversionConjunto(P,lamb)
     else:
         if random() <= 1.0/3:
             x_prima = insercion (x)
@@ -95,14 +113,11 @@ def insercion (x):
     x_prima.insert(i, x[j])
     return x_prima
 
-
-
-
 def inversion(x):
     """Operador de mutación por inversión para 2-opt."""
     n = len(x)  # Número de nodos en la ruta (ciudades a visitar)
     x_prima = x[:]  # Creamos una copia de la ruta original
-
+    
     # Elegir aleatoriamente dos índices distintos i y j
     i = choice(range(n))
     j = choice(range(n))
@@ -121,78 +136,17 @@ def inversion(x):
 
     return x_prima  # Devolver la ruta con la mutación por inversión
 
-def opt3(x): # Realiza 4 cambios 
-    n = len(x)
-    x_prima = x[:]  # Creamos una copia de la ruta original
-    # Escoger el primer índice i
-    i = choice(range(n))
-    j = choice(range(n))
-    k = choice(range(n))
-    l = choice(range(n))
-    while j == i:
-        j = choice(range(n))
-    while k == l:
-        k = choice(range(n))
-    # Asegurarse de que j > i para definir correctamente la subsecuencia a invertir
-    if j < i:
-        temp = i
-        i = j
-        j = temp
-    # Asegurarse de que k > l para definir correctamente la subsecuencia a invertir
-    if k < l:
-        temp = l
-        l = k
-        k = temp
-    # Invertir la subsecuencia entre los índices k y l en la copia de la ruta
-    for a in range(k - l + 1):
-        x_prima[l + a] = x[k - a]
+def inversionConjunto(P,la):
+    Q=P[:]
+    "Operador de mutación por inversión para 2-opt."
+    # * Selecciono lambda numeros aleatorios de 0 hasta el tamaño de P
+    numerosAleatorios = sample(range(0, len(P)), la)
     
-    x_prima2 = x_prima[:]  # Creamos una copia de la ruta prima
+    for i in range(len(numerosAleatorios)):
+        Q[numerosAleatorios[i]]=inversion(P[numerosAleatorios[i]])
 
-    # Invertir la subsecuencia entre los índices i y j en la copia de la ruta
-    for b in range(j - i + 1):
-        x_prima2[i + b] = x_prima[j - b]
-
-    return x_prima2
-
-def opt3_2(x): # 
-    n = len(x)
-    x_prima = x[:]  # Creamos una copia de la ruta original
-    
-    # Elegir tres índices distintos i, j, k aleatoriamente
-    i = choice(range(n))  # Generar un índice aleatorio entre 0 y n 
-    j = choice(range(n))
-    while j == i:  # j sea diferente de i
-        j = choice(range(n))
-    k = choice(range(n))
-    while k == i or k == j:  #  k sea diferente de i y j
-        k = choice(range(n))
-    
-    # i< j < k
-    if j < i:
-        i, j = j, i
-    if k < j:
-        j, k = k, j
-    
-    # Cambio 3 opt
-    for a in range(j - i + 1):
-        x_prima[i + a], x_prima[j - a] = x[j - a], x[i + a]
-    
-    return x_prima
-
-def opt3_3(x): #Realiza 4 modificaciones pero solo se mueven 3 caminos
-    n = len(x)
-    x_prima = x[:]  # Creamos una copia de la ruta original
-    
-    # Elegir tres índices distintos i, j, k aleatoriamente
-    i = choice(range(n-4))  # Generar un índice aleatorio entre 0 y n 
-    
-    x_prima[i] = x[i+1]
-    x_prima[i+1] = x[i]
-    x_prima[i+2] = x[i+3]
-    x_prima[i+3] = x[i+2]
-    
-    return x_prima
+    Q = Q + P
+    return Q
 
 
 def permutacion_aleatoria(n):
@@ -254,29 +208,28 @@ def resultado(x, costo, prom_costo, generacion_mejor):
     print("Costo promedio:", prom_costo, "\n")
 
 
-
-def eetsp (problema, generaciones_sin_mejora, repeticiones = 1, mutacion = None):
+def eetsp(problema, generaciones_sin_mejora, repeticiones=1, mutacion=None, mu=10, lamb=5):
     n, d = preproceso(problema)
-    mejor_costo = 100 ** 10
+    mejor_costo = float('inf')  # Usamos infinito positivo como valor inicial
     prom_costo = 0.0
     for i in range(repeticiones):
-        x, costo, generacion = ee(n, d, generaciones_sin_mejora, mutacion)
-        prom_costo = prom_costo + costo
+        x, costo, generacion = ee(n, d, generaciones_sin_mejora, mutacion, mu, lamb)
+        prom_costo += costo
         if mejor_costo > costo:
             mejor_x = x
             mejor_costo = costo
             generacion_mejor = generacion
-    resultado(mejor_x, mejor_costo, prom_costo/repeticiones, generacion_mejor)
-
-
+    resultado(mejor_x, mejor_costo, prom_costo / repeticiones, generacion_mejor)
 
 if __name__ == "__main__":
-    print(len(sys.argv))
-    if(len(sys.argv) < 3) or (len(sys.argv) > 5):
-        print("Sintaxis: eetsp.py <problema> <núm_generaciones_sin_mejora> <repeticiones> <mutación>")
-    elif len(sys.argv) == 3:
-        eetsp(sys.argv[1], int(sys.argv[2]))
-    elif len(sys.argv) == 4:
-        eetsp(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+    if len(sys.argv) < 3 or len(sys.argv) > 7:
+        print("Sintaxis: eetsp.py <problema> <núm_generaciones_sin_mejora> [<repeticiones> [<mutación> <mu> <lamb>]]")
     else:
-        eetsp(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]), sys.argv[4])
+        problema = sys.argv[1]
+        generaciones_sin_mejora = int(sys.argv[2])
+        repeticiones = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+        mutacion = sys.argv[4] if len(sys.argv) > 4 else None
+        mu = int(sys.argv[5]) if len(sys.argv) > 5 else 10  # Valor predeterminado de mu
+        lamb = int(sys.argv[6]) if len(sys.argv) > 6 else 5  # Valor predeterminado de lamb
+
+        eetsp(problema, generaciones_sin_mejora, repeticiones, mutacion, mu, lamb)
