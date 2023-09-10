@@ -16,48 +16,52 @@ def ee (n, d, num_generaciones, mutacion,mu,lamb):
     """
 
     # Se crea un individuo (permutacion) aleatorio
-    P=list()
+    aux=list()
     aptitudes=list()
     aptitudesPrima=list()
     # * Generar mu soluciones aleatorias dentro de P
-    for _ in range(mu):
+    for i in range(mu):
         x = permutacion_aleatoria(n)
-        P.append(x)
-    # * Calcular aptitudes de P
-    for i in range(len(P)):
-        aptitudes.append(calcular_aptitud(P[i], d)) 
+        aux.append(x)
+        aptitudes.append(calcular_aptitud(aux[i], d)) 
+
+    P= list(zip(aux, aptitudes))
 
     # * Seleccionar las mejores mu aptitudes de P
     aptitudes.sort(reverse=True)
     aptitudes = aptitudes[:mu]
 
+        
+
+    # ...
+
     generacion = 0
     generaciones_sin_mejora = 0
+
     while (generaciones_sin_mejora < num_generaciones):
         generacion = generacion + 1
-    
-        # * Q es igual a Q + P con mutación
-        Q = mutar(x,mutacion,P,lamb)
-        # * Se evaluan las aptitudes de Q
-        for i in range(len(Q)):
-            aptitudesPrima.append(calcular_aptitud(Q[i], d)) 
-        # * Seleccionar las mejores mu aptitudes de Q
-        aptitudesPrima.sort(reverse=True)
-        aptitudesPrima = aptitudesPrima[:mu]
 
-        # * Identificar las mejores aptitudes de cada lista
-        mejorAptitud = max(aptitudes)
-        mejorAptitudPrima = max(aptitudesPrima)
+        # Q es igual a Q + P con mutación
+        Q = mutar(x, mutacion, P, lamb)
         
-        # * Si la aptitud mutada es mejor que la original se cambia
-        if mejorAptitudPrima > mejorAptitud:
-            P=Q[:mu]
-            aptitudes = aptitudesPrima[:]
+        # Se evalúan las aptitudes de Q
+        aptitudesPrima = [calcular_aptitud(individuo, d) for individuo in Q]
+
+        # Identificar la mejor aptitud de Q
+        mejorAptitudPrima = max(aptitudesPrima)
+
+        # Si la aptitud mutada es mejor que la original se cambia
+        if mejorAptitudPrima > max(aptitudes):
+            mejores_indices = sorted(range(len(aptitudesPrima)), key=lambda i: aptitudesPrima[i], reverse=True)[:mu]
+            P = [Q[i] for i in mejores_indices]
+            aptitudes = [aptitudesPrima[i] for i in mejores_indices]
             generacion_mejor = generacion
             generaciones_sin_mejora = 0
         else:
             generaciones_sin_mejora = generaciones_sin_mejora + 1
-    
+
+    # ...
+
     aptitud = max(aptitudes)
     
     return x, (-1 * aptitud), generacion_mejor
@@ -137,13 +141,13 @@ def inversion(x):
     return x_prima  # Devolver la ruta con la mutación por inversión
 
 def inversionConjunto(P,la):
-    Q=P[:]
+    Q=list()
     "Operador de mutación por inversión para 2-opt."
     # * Selecciono lambda numeros aleatorios de 0 hasta el tamaño de P
     numerosAleatorios = sample(range(0, len(P)), la)
     
-    for i in range(len(numerosAleatorios)):
-        Q[numerosAleatorios[i]]=inversion(P[numerosAleatorios[i]])
+    for i in range(la):
+        Q.append(inversion(P[numerosAleatorios[i]]))
 
     Q = Q + P
     return Q
