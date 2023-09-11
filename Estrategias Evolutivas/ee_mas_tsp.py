@@ -33,6 +33,7 @@ def ee (n, d, m, l, mut, numgen):
     generacionesSinMejora = 0
     generacionMejor = 0
     while (generacionesSinMejora < numgen):
+        
         generacion = generacion + 1
     
         # Se mutan los individuos actuales x para obtener
@@ -44,7 +45,7 @@ def ee (n, d, m, l, mut, numgen):
         # los resultados de la mutacion
         x.extend(xprima)
         aptitud.extend(aptitudprima)
-
+        
         # Se ordena el conjunto
         comb = list(zip(x, aptitud))
         comb = sorted(comb, key = lambda x: x[1], reverse = True)
@@ -52,7 +53,8 @@ def ee (n, d, m, l, mut, numgen):
         # Se seleccionan los mejores mu
         x = [elem[0] for elem in comb[:m]]
         aptitud = [elem[1] for elem in comb[:m]]
-
+        
+        # print(aptitud)
         # Si la solucion actual x' es mejor que x,
         # se actualiza x
         if aptitud[0] > mejoraptitud:

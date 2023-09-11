@@ -1,4 +1,4 @@
-from random import choice, random, uniform, randint, sample
+from random import choice, random, sample
 import csv
 import sys
 
@@ -18,106 +18,76 @@ def ee (n, d, num_generaciones, mutacion,mu,lamb):
     # Se crea un individuo (permutacion) aleatorio
     aux=list()
     aptitudes=list()
-    aptitudesPrima=list()
-    # * Generar mu soluciones aleatorias dentro de P
+    # * Generar población de mu soluciones
     for i in range(mu):
         x = permutacion_aleatoria(n)
         aux.append(x)
-        aptitudes.append(calcular_aptitud(aux[i], d)) 
+        aptitudes.append(calcular_aptitud(aux[i], d))
 
-    P= list(zip(aux, aptitudes))
-
-    # * Seleccionar las mejores mu aptitudes de P
-    aptitudes.sort(reverse=True)
-    aptitudes = aptitudes[:mu]
-
-        
-
-    # ...
-
+    # * Hacer una lista de pares, [(permutación),(aptitudes)]
+    aux= list(zip(aux, aptitudes))
+    # * Ordena la lista de manera descendente en función de la aptitud
+    aux = sorted(aux, key = lambda x: x[1], reverse = True)
+    # print("AUX:",aux)
+    # * Lista P y de aptitudes ordenada de manera descendente
+    P = [elem[0] for elem in aux[:mu]]
+    aptitudes= [elem[1] for elem in aux[:mu]]
+    
+    mejoraptitud = aptitudes[0]
+    
     generacion = 0
     generaciones_sin_mejora = 0
-
+    generacion_mejor=0
     while (generaciones_sin_mejora < num_generaciones):
+        aptitudesPrima=list()
+        # print("Mejor Aptitud: ",mejoraptitud)
         generacion = generacion + 1
-
-        # Q es igual a Q + P con mutación
-        Q = mutar(x, mutacion, P, lamb)
         
-        # Se evalúan las aptitudes de Q
-        aptitudesPrima = [calcular_aptitud(individuo, d) for individuo in Q]
+        # * Q = lista con lambda mutaciones de P
+        Q= mutar(mutacion, P, lamb)
+        
+        # * Se evaluan las funciones de Q
+        # * y las aptitudes originales con las mutadas
+        for i in range(len(Q)):
+            aptitudesPrima.append(calcular_aptitud(Q[i], d))
+        
+        Q.extend(P)
+        # print("Q con P:",Q)
+        aptitudesPrima.extend(aptitudes)
+        # print("Aptitudes de Q y P:",aptitudesPrima)
+        # * Se añade a Q las mutaciones de P 
+        
+        # * Hacer una lista de pares, [(permutación),(aptitudes)]
+        comb= list(zip(Q, aptitudesPrima))
+        # print("Q con aptitudes:",Q)
+        # * Ordena la lista de manera descendente en función de la aptitud
+        comb = sorted(comb, key = lambda x: x[1], reverse = True)
 
-        # Identificar la mejor aptitud de Q
-        mejorAptitudPrima = max(aptitudesPrima)
+        P = [elem[0] for elem in comb[:mu]]
+        aptitudes = [elem[1] for elem in comb[:mu]]
+        # print("Mejores aptitudes P:",aptitudes)
+        
 
-        # Si la aptitud mutada es mejor que la original se cambia
-        if mejorAptitudPrima > max(aptitudes):
-            mejores_indices = sorted(range(len(aptitudesPrima)), key=lambda i: aptitudesPrima[i], reverse=True)[:mu]
-            P = [Q[i] for i in mejores_indices]
-            aptitudes = [aptitudesPrima[i] for i in mejores_indices]
+        if aptitudes[0] > mejoraptitud:
+            # print("hola")
+            mejoraptitud = aptitudes[0]
             generacion_mejor = generacion
             generaciones_sin_mejora = 0
         else:
             generaciones_sin_mejora = generaciones_sin_mejora + 1
 
-    # ...
+    return x, (-1 * aptitudes[0]), generacion_mejor
 
-    aptitud = max(aptitudes)
+
+def mutar (mutacion,P,lamb):
     
-    return x, (-1 * aptitud), generacion_mejor
-
-
-def mutar (x, mutacion,P,lamb):
     """Aplica el operador de mutación especificado a x."""
-    if mutacion == 'intercambio':
-        x_prima = intercambio(x)
-    elif mutacion == 'insercion':
-        x_prima = insercion(x)
-    elif mutacion == 'inversion':
-        x_prima = inversion(x)
-    elif mutacion == 'inversionConjunto':
-        x_prima = inversionConjunto(P,lamb)
-    else:
-        if random() <= 1.0/3:
-            x_prima = insercion (x)
-        elif random() <= 0.5:
-            x_prima = intercambio (x)
-        else:
-            x_prima = inversion (x)
-    return x_prima
-
-
-def intercambio (x):
-    """Operador de mutación por intercambio."""
-    n = len(x)
-    x_prima = x[:]
-    i = choice(range(n))
-    j = choice(range(n))
-    while j == i:
-        j = choice(range(n))
-    temp = x_prima[i]
-    x_prima[i] = x_prima[j]
-    x_prima[j] = temp
-    return x_prima
-
-
-def insercion (x):
-    """Operador de mutación por inserción."""
-    n = len(x)
-    x_prima = x[:]
-    i = choice(range(n))
-    j = choice(range(n))
-    while j == i:
-        j = choice(range(n))
-    if j < i:
-        temp = i
-        i = j
-        j = temp
-    x_prima.pop(j)
-    x_prima.insert(i, x[j])
-    return x_prima
+    if mutacion == 'inversionConjunto':
+        Q = inversionConjunto(P,lamb)
+    return Q
 
 def inversion(x):
+    
     """Operador de mutación por inversión para 2-opt."""
     n = len(x)  # Número de nodos en la ruta (ciudades a visitar)
     x_prima = x[:]  # Creamos una copia de la ruta original
@@ -140,17 +110,19 @@ def inversion(x):
 
     return x_prima  # Devolver la ruta con la mutación por inversión
 
-def inversionConjunto(P,la):
-    Q=list()
-    "Operador de mutación por inversión para 2-opt."
-    # * Selecciono lambda numeros aleatorios de 0 hasta el tamaño de P
-    numerosAleatorios = sample(range(0, len(P)), la)
+def inversionConjunto(P, lamb):
+    Q = []
     
-    for i in range(la):
-        Q.append(inversion(P[numerosAleatorios[i]]))
-
-    Q = Q + P
+    # Selecciona lambda números aleatorios de 0 hasta el tamaño de P
+    numerosAleatorios = sample(range(len(P)), lamb)
+    # print("P:",P)
+    for i in range(lamb):
+        elemento_seleccionado = P[numerosAleatorios[i]]
+        elemento_mutado = inversion(elemento_seleccionado)
+        Q.append(elemento_mutado)
+    # print("Q solito:",Q)
     return Q
+
 
 
 def permutacion_aleatoria(n):
@@ -223,6 +195,7 @@ def eetsp(problema, generaciones_sin_mejora, repeticiones=1, mutacion=None, mu=1
             mejor_x = x
             mejor_costo = costo
             generacion_mejor = generacion
+        
     resultado(mejor_x, mejor_costo, prom_costo / repeticiones, generacion_mejor)
 
 if __name__ == "__main__":
