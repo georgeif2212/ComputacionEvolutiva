@@ -188,12 +188,12 @@ def calcularAptitud (x, d):
 # Lee datos del problema del archivo de texto
 def preproceso (problema):
     # Se lee la informacion del caso de prueba
-    arch = open('tsp/' + problema + '.atsp')
+    arch = open('../Benchmarks/tsp/' + problema + '.atsp')
     info = list(map(int, arch.read().split()))
     arch.close()
     n = info[0]
     info = info[1:]
-    with open('tsp/best-known.atsp') as f:
+    with open('../Benchmarks/tsp/best-known.atsp') as f:
         reader = csv.reader(f, delimiter=' ')
         data = [(col1, int(col2)) for col1, col2 in reader]
     
