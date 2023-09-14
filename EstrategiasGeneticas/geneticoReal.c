@@ -26,13 +26,12 @@ int main(int argc, char *argv[])
 
     // ? Reservar memoria para la poblacion
     individuo *poblacion = (individuo *)malloc(sizeof(individuo) * tamPoblacion);
-    generaPoblacionInicial(poblacion, tamPoblacion, tamCromosoma,min, max);
+    generaPoblacionInicial(poblacion, tamPoblacion, tamCromosoma, min, max);
     funcionFitness(poblacion, tamPoblacion, tamCromosoma);
 
     int iteracion = 0;
     while (iteracion < numGeneraciones)
     {
-
         // * Seleccion de padres
 
         // * Cruza
@@ -48,10 +47,10 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < tamPoblacion; i++)
     {
-        printf("\nIndividuo %d con fitness %d y con cromosomas:", i, poblacion[i].fitness);
+        printf("\nIndividuo %d con fitness %lf y con cromosomas:", i, poblacion[i].fitness);
         for (int j = 0; j < tamCromosoma; j++)
         {
-            printf("%i", poblacion[i].cromosoma[j]);
+            printf("%lf", poblacion[i].cromosoma[j]);
         }
     }
 }
@@ -66,7 +65,7 @@ void generaPoblacionInicial(individuo *poblacion, int tamPoblacion, int tamCromo
 
         for (int j = 0; j < tamCromosoma; ++j)
         {
-            // * Se generan numeros aleatorios que estan entre 5 y 10
+            // * Se generan numeros aleatorios que estan entre el mínimo y el máximo
             poblacion[i].cromosoma[j] = (double)min + rand() / RAND_MAX * (max - min);
         }
     }
@@ -74,6 +73,7 @@ void generaPoblacionInicial(individuo *poblacion, int tamPoblacion, int tamCromo
 
 void funcionFitness(individuo *poblacion, int tamPoblacion, int tamCromosoma)
 {
+    double total = 0;
     for (int i = 0; i < tamPoblacion; ++i)
     {
         int decimal = 0;
@@ -81,53 +81,61 @@ void funcionFitness(individuo *poblacion, int tamPoblacion, int tamCromosoma)
         //* cromosoma y así poder dar el valor en base 10
         int base = 1;
 
-        for (int j = tamCromosoma; j >= 0; j--)
+        for (int j = 0; j < tamCromosoma; j++)
         {
-            decimal += poblacion[i].cromosoma[j] * base;
-            base *= 2;
+            total += poblacion[i].cromosoma[j];
         }
-        poblacion[i].fitness = decimal;
+
+        poblacion[i].fitness = total;
     }
 }
 
 void cruza(individuo *poblacion, int tamPoblacion, int tamCromosoma)
 {
-    // * Padres: indices de los elementos de la población
-    int padre1, padre2;
+    individuo *hijo1 = (individuo *)malloc(sizeof(individuo));
+    hijo1->cromosoma = (double *)malloc(tamCromosoma * sizeof(double));
 
-    int puntoCruza;
+    // * Recorrer a los padres
     srand(time(NULL));
-    padre1 = rand() % tamPoblacion;
-    padre2 = rand() % tamPoblacion;
-    puntoCruza = rand() % tamPoblacion;
-
-    int *hijo1 = (int *)malloc(tamCromosoma * sizeof(int));
-    int *hijo2 = (int *)malloc(tamCromosoma * sizeof(int));
-    for (int j = 0; j < tamCromosoma; j++)
+    int padre1 = rand() % tamPoblacion;
+    int padre2 = rand() % tamPoblacion;
+    for (int i = 0; i < tamCromosoma; i++)
     {
-        // * hacer una copia
-        hijo1[j] = poblacion[padre1].cromosoma[j];
-        hijo2[j] = poblacion[padre2].cromosoma[j];
+        hijo1->cromosoma[i] = (poblacion[padre1].cromosoma[i] + poblacion[padre2].cromosoma[i]) / 2;
     }
-
-    for (int j = puntoCruza; j < tamCromosoma; j++)
-    {
-        // * copiar lo del padre 1 desde el punto de cruza al padre 2
-        hijo1[j] = poblacion[padre2].cromosoma[j];
-        hijo2[j] = poblacion[padre1].cromosoma[j];
-    }
-
-    for (int j = 0; j < puntoCruza; j++)
-    {
-        // * copiar lo del padre 2 hasta el punto de cruza al padre 1
-        poblacion[padre1].cromosoma[j] = hijo1[j];
-        poblacion[padre2].cromosoma[j] = hijo2[j];
-    }
+    // * Evaluar a los padres y a los hijos
     funcionFitness(poblacion, tamPoblacion, tamCromosoma);
+    funcionFitness(hijo1, 1, tamCromosoma);
+
+    if (poblacion[padre1].fitness < poblacion[padre2].fitness)
+    {
+        poblacion[padre2].fitness = hijo1->fitness;
+        for (int j = 0; j < tamCromosoma; j++)
+        {
+            poblacion[padre2].cromosoma[j] = hijo1->cromosoma[j];
+        }
+    }
+    else if (poblacion[padre1].fitness > poblacion[padre2].fitness)
+    {
+        poblacion[padre1].fitness = hijo1->fitness;
+        for (int j = 0; j < tamCromosoma; j++)
+        {
+            poblacion[padre1].cromosoma[j] = hijo1->cromosoma[j];
+        }
+    }
+    else
+    {
+        poblacion[padre1].fitness = hijo1->fitness;
+        for (int j = 0; j < tamCromosoma; j++)
+        {
+            poblacion[padre1].cromosoma[j] = hijo1->cromosoma[j];
+        }
+    }
 }
 
 void mutar(individuo *poblacion, int tamPoblacion, int tamCromosoma, float probMutacion)
 {
+    // * Esta mutación no está tan chida pero se cambiará el individuo 0.1 hacia arriba o abajo
     for (int i = 0; i < tamPoblacion; i++)
     {
         for (int j = 0; j < tamCromosoma; j++)
@@ -135,7 +143,10 @@ void mutar(individuo *poblacion, int tamPoblacion, int tamCromosoma, float probM
             float probabilidad = (float)rand() / RAND_MAX;
             if (probabilidad < probMutacion)
             {
-                poblacion[i].cromosoma[j] = (poblacion[i].cromosoma[j] + 1) % 2;
+                // * Calcular un valor que sea 0.1 o -0.1
+                float valor;
+                valor = (rand() / RAND_MAX * 0.2) - 0.2;
+                poblacion[i].cromosoma[j] += valor;
             }
         }
     }
